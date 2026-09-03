@@ -1,0 +1,10 @@
+{
+  "name": "AFB Diagnostic-300",
+  "benchmark_version": "1.1.0",
+  "domains": 12,
+  "instances_per_domain": 25,
+  "total_tasks": 300,
+  "recommended_seeds": [20260903, 91827364, 48151623],
+  "human_baselines": "estimated_not_horizon_eligible",
+  "publication_note": "Diagnostic-300 is a public procedural diagnostic suite. It is not sufficient by itself for frontier capability claims."
+}
