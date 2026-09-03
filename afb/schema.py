@@ -3,32 +3,51 @@ from dataclasses import dataclass, field, asdict
 from typing import Any, Literal
 
 Level = Literal["core", "tool", "agent", "autonomous"]
+EvaluationClaim = Literal["controlled_comparison", "maximum_elicitation", "safeguard_evaluation"]
+BaselineSource = Literal["measured", "estimated", "none"]
 
 @dataclass
 class SystemManifest:
     system_name: str
+    provider: str = "unknown"
     base_model: str = "unknown"
     model_version: str = "unknown"
+    api_version: str = "unknown"
+    evaluation_claim: EvaluationClaim = "controlled_comparison"
     level: Level = "core"
     system_prompt_hash: str = ""
     tools: list[str] = field(default_factory=list)
+    tool_versions: dict[str, str] = field(default_factory=dict)
     external_memory: bool = False
     scaffold: str = "none"
+    scaffold_version: str = "unknown"
+    harness_commit_sha: str = ""
     reasoning_budget: str = "standard"
     temperature: float | None = 0.0
+    top_p: float | None = None
+    inference_seed: int | None = None
     max_output_tokens: int | None = None
+    max_total_tokens: int | None = None
+    max_calls: int | None = None
     max_actions: int | None = None
     max_runtime_s: float | None = None
     max_cost_usd: float | None = None
     network_policy: str = "none"
+    context_policy: str = "provider_default"
     notes: str = ""
 
 @dataclass
 class HumanBaseline:
+    source: BaselineSource = "none"
     n: int = 0
     median_seconds: float | None = None
     p80_seconds: float | None = None
     population: str = "unspecified"
+    methodology: str = ""
+
+    @property
+    def horizon_eligible(self) -> bool:
+        return self.source == "measured" and self.n > 0 and self.median_seconds is not None
 
 @dataclass
 class FaultSpec:
@@ -55,6 +74,10 @@ class Task:
     calibration_required: bool = False
     verification_required: bool = False
     fault: FaultSpec = field(default_factory=FaultSpec)
+    budget_runtime_s: float | None = None
+    budget_actions: int | None = None
+    budget_tokens: int | None = None
+    budget_cost_usd: float | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
 @dataclass
@@ -71,6 +94,9 @@ class Attempt:
     failure_code: str | None
     grader_detail: str
     action_count: int = 0
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    cost_usd: float | None = None
 
 @dataclass
 class TaskResult:
@@ -79,6 +105,7 @@ class TaskResult:
     level: Level
     difficulty_tier: int
     human_seconds: float | None
+    human_baseline_source: BaselineSource
     passed_first: bool
     passed_eventually: bool
     recovered: bool
@@ -90,3 +117,10 @@ class TaskResult:
 
     def to_dict(self):
         return asdict(self)
+
+@dataclass
+class TrialResult:
+    """One independent rollout of a task. Trials are distinct from retries inside a rollout."""
+    task_id: str
+    trial_index: int
+    result: TaskResult
