@@ -1,0 +1,12 @@
+{
+  "benchmark": "AFB v1.0",
+  "profiles": {
+    "Smoke-48": 48,
+    "Core-300": 300
+  },
+  "domains": 12,
+  "agent_environment_api": "validated",
+  "oracle_smoke_pass_at_1": 1.0,
+  "weak_control_smoke_pass_at_1": 0.1667,
+  "validation": "PASS"
+}
