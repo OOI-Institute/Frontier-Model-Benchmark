@@ -1,0 +1,13 @@
+{
+  "name": "AFB Core-300",
+  "benchmark_version": "1.0.0",
+  "domains": 12,
+  "instances_per_domain": 25,
+  "total_tasks": 300,
+  "recommended_seeds": [
+    20260903,
+    91827364,
+    48151623
+  ],
+  "publication_note": "For frontier claims, combine Core-300 with sealed/live and real execution-environment packs."
+}
