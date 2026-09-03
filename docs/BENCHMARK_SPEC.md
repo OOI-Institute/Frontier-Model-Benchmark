@@ -1,26 +1,38 @@
-# AFB Benchmark Specification v1.0
+# AFB Benchmark Specification v1.1
 
 ## Evaluation object
 
-AFB evaluates a **system-under-test**:
+AFB evaluates a declared **system-under-test**:
 
 `model + prompts + harness + tools + memory + inference budget + environment`
 
-A result is not a "model score" unless all non-model factors are held constant.
+A result is not a model-only score unless all non-model factors are held constant.
+
+## Evaluation claim
+
+Every run declares one of:
+
+- `controlled_comparison`
+- `maximum_elicitation`
+- `safeguard_evaluation`
+
+The claim type is part of the result manifest because different evaluation goals permit different harness and elicitation choices.
 
 ## Evaluation levels
 
 ### Level 1 — Core
-No external tools. Tests reasoning, mathematics, abstraction, structure, calibration, knowledge, and instruction following.
+No external execution tools.
 
 ### Level 2 — Tool
-Standardized tool affordances. Measures tool choice, tool execution, synthesis, and verification.
+Declared standardized tool affordances.
 
 ### Level 3 — Agent
-Interactive environments. Measures planning, action, state tracking, recovery, and terminal-state success.
+Interactive execution environments with observe/act loops and terminal-state grading.
 
 ### Level 4 — Autonomous
-Long-running dynamic environments with changing constraints, fault injection, persistent state, and authority boundaries.
+Long-running dynamic environments with changed state, faults, persistence, and constraint boundaries.
+
+The public diagnostic suite may contain precursor tasks related to these domains; it should not be cited as evidence of full Level 3/4 execution capability without a real environment pack.
 
 ## Domains
 
@@ -37,49 +49,66 @@ A10 Recovery & Adaptation
 A11 Professional Work  
 A12 Judgment / Authority / Safety  
 
-## Required benchmark tiers
+## Public profiles
 
-AFB-compatible task packs may be:
+- **Smoke-48** — CI, adapter, and harness validation.
+- **Diagnostic-300** — procedural development diagnostics.
+
+Neither public procedural profile alone is sufficient for frontier-capability claims.
+
+## Benchmark visibility tiers
+
+AFB-compatible packs may be:
+
 - public-dev
 - public-eval
 - semi-private
 - sealed
 - live/post-cutoff
 
-Published frontier claims should include at least one sealed or live set.
+Strong frontier claims should include tasks that materially reduce contamination risk, such as sealed or live/post-cutoff evaluation, when feasible.
+
+## Human-baseline provenance
+
+Human baseline metadata must declare `measured`, `estimated`, or `none`.
+
+Official H50/H80 horizon estimates require measured baseline data. Estimated times may be retained for development metadata but are not horizon-eligible.
 
 ## Task admission criteria
 
-Every serious benchmark task should satisfy:
+Serious benchmark tasks should satisfy:
 
 - realism
 - construct validity
 - solvability by qualified humans
 - objective terminal-state determination where possible
-- anti-cheat resistance
+- anti-shortcut / anti-reward-hacking review
 - discrimination among systems
 - remaining frontier headroom
 - stable/reconstructable environment
-- measured human difficulty
+- documented human-difficulty provenance
 - reproducible initialization
 
-## Repetition
-
-For low-cost tasks:
-- minimum 3 independent rollouts
-
-For high-cost tasks:
-- 1 rollout may be acceptable if the benchmark reports that limitation.
+## Repetition and recovery
 
 AFB distinguishes:
-- pass@1
-- eventual success
-- repeated consistency
-- recovery
+
+- **trial** — an independent rollout from initial state,
+- **retry/attempt** — another attempt inside one rollout,
+- **pass@1** — first-trial/first-attempt success as defined by the pack,
+- **eventual success** — success within explicitly permitted recovery,
+- **consistency** — repeated independent success,
+- **recovery rate** — correction after an initial failure.
+
+Do not collapse retries into first-pass success.
+
+## Efficiency and budgets
+
+Runs may declare runtime, action, token, call, and cost budgets. Efficiency is computed only from dimensions for which both comparable budget and observed telemetry exist. Missing data are reported as unavailable, not assumed perfect.
 
 ## Fault injection
 
-Agent/autonomous packs should support controlled disruptions such as:
+Agent/autonomous packs may use controlled disruptions such as:
 
 - tool failure
 - stale information
@@ -89,4 +118,19 @@ Agent/autonomous packs should support controlled disruptions such as:
 - corrupted artifact
 - delayed external event
 
-Fault timing must be randomized or sealed for serious runs.
+Fault timing should be randomized, sealed, or otherwise protected from direct benchmark-specific optimization for serious studies.
+
+## Result integrity
+
+Official or publication-grade results should preserve:
+
+- benchmark/task-pack version,
+- complete system manifest,
+- evaluation claim type,
+- trial count,
+- retry policy,
+- raw outputs/trajectories where releasable,
+- grader identity/version,
+- task exclusions and reasons,
+- confidence intervals,
+- budget and telemetry availability.
