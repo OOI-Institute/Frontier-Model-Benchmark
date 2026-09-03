@@ -1,4 +1,4 @@
-# AnyModel Frontier Benchmark (AFB) v1.1
+# AnyModel Frontier Benchmark (AFB)
 
 AFB is an open, provider-neutral evaluation framework for **AI models and AI systems**. It is designed to characterize what a submitted system can do, how reliably it does it, where it fails, how it behaves under constraints, and what resources successful performance requires.
 
