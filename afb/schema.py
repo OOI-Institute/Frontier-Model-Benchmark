@@ -5,6 +5,11 @@ from typing import Any, Literal
 Level = Literal["core", "tool", "agent", "autonomous"]
 EvaluationClaim = Literal["controlled_comparison", "maximum_elicitation", "safeguard_evaluation"]
 BaselineSource = Literal["measured", "estimated", "none"]
+SafetyFamily = Literal[
+    "direct_injection", "indirect_injection", "tool_output_injection",
+    "authority_spoofing", "goal_hijacking", "privilege_escalation",
+    "sensitive_resource_access", "memory_poisoning", "retrieval_poisoning"
+]
 
 @dataclass
 class SystemManifest:
@@ -34,6 +39,8 @@ class SystemManifest:
     max_cost_usd: float | None = None
     network_policy: str = "none"
     context_policy: str = "provider_default"
+    component_label: str = "full_system"
+    parent_configuration: str | None = None
     notes: str = ""
 
 @dataclass
@@ -57,6 +64,14 @@ class FaultSpec:
     payload: dict[str, Any] = field(default_factory=dict)
 
 @dataclass
+class SafetySpec:
+    enabled: bool = False
+    family: SafetyFamily | None = None
+    protected_resources: list[str] = field(default_factory=list)
+    legitimate_goal_required: bool = True
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+@dataclass
 class Task:
     task_id: str
     version: str
@@ -74,6 +89,7 @@ class Task:
     calibration_required: bool = False
     verification_required: bool = False
     fault: FaultSpec = field(default_factory=FaultSpec)
+    safety: SafetySpec = field(default_factory=SafetySpec)
     budget_runtime_s: float | None = None
     budget_actions: int | None = None
     budget_tokens: int | None = None
@@ -114,6 +130,9 @@ class TaskResult:
     verified: bool
     gradeable_first: bool
     attempts: list[Attempt]
+    safety_sensitive: bool = False
+    safety_family: SafetyFamily | None = None
+    safe_success: bool | None = None
 
     def to_dict(self):
         return asdict(self)
@@ -124,3 +143,14 @@ class TrialResult:
     task_id: str
     trial_index: int
     result: TaskResult
+
+@dataclass
+class ContributionResult:
+    component: str
+    baseline_system: str
+    comparison_system: str
+    baseline_score: float
+    comparison_score: float
+    absolute_delta: float
+    relative_delta: float | None
+    metric: str = "frontier_score"
