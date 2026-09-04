@@ -9,6 +9,7 @@ from afb.attribution import contribution_delta
 from afb.safety import run_sidecar_safety_suite
 from afb.baselines import load_human_baselines, apply_human_baselines, record_human_timing, compile_human_baselines
 from afb.external.terminal import normalize_terminal_results
+from afb.provenance import verify_payload, verify_result_file
 import tempfile, json, re
 from pathlib import Path
 
@@ -20,11 +21,21 @@ def test_reproducible():
 
 def test_oracle():
     with tempfile.TemporaryDirectory() as d:
-        p,_=run_suite(OracleAdapter(),generate_reference_suite(123,2),SystemManifest("oracle"),d)
+        p,path=run_suite(OracleAdapter(),generate_reference_suite(123,2),SystemManifest("oracle"),d)
         assert p["metrics"]["pass_at_1"]==1.0
         assert p["metrics"]["horizon_status"]=="unavailable_no_measured_human_baseline"
         assert p["metrics"]["indexes"]["efficiency"] is not None
         assert p["metrics"]["frontier_score"] is None
+        assert verify_payload(p)["valid"]
+        assert verify_result_file(str(path))["valid"]
+
+
+def test_result_fingerprint_detects_mutation():
+    with tempfile.TemporaryDirectory() as d:
+        p,_=run_suite(OracleAdapter(),generate_reference_suite(123,1),SystemManifest("oracle"),d)
+        assert verify_payload(p)["valid"]
+        p["metrics"]["pass_at_1"]=0.0
+        assert not verify_payload(p)["valid"]
 
 
 def test_reference_a8_a10_are_interactive():
@@ -44,6 +55,7 @@ def test_multitrial_experiment_separates_trials_from_retries():
         assert all(x["trial_index"] in {0,1,2} for x in p["results"])
         assert p["metrics"]["recovery_rate"] is None
         assert p["metrics"]["frontier_score"] is None
+        assert "recovery_evidence" in p["metrics"]["frontier_score_missing_evidence"]
 
 
 def test_weak_discriminates():
