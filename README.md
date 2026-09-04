@@ -48,6 +48,14 @@ python -m afb.cli run \
   --system-name my-frontier-run
 ```
 
+Every run log includes a deterministic SHA-256 fingerprint over the complete canonical payload. Verify a saved result with:
+
+```bash
+python -m afb.cli verify-result --input runs/<run>.json
+```
+
+The fingerprint is tamper-evidence for the serialized AFB result. It is not a claim that AFB independently witnessed or certified the underlying model execution.
+
 ## Public packs
 
 ### Smoke-48
@@ -72,17 +80,19 @@ AFB prefers the strongest objective grader available:
 4. **G3 — Validated model judge** — planned opt-in extension
 5. **G4 — Human expert adjudication** — planned external review protocol
 
-Tasks may now declare multiple named graders with weights and required/optional status. The reference grader set includes exact, numeric, JSON, rubric, calibration, and citation-fidelity scoring. Never use a model judge when deterministic/programmatic grading can decide the outcome.
+Tasks may declare multiple named graders with weights and required/optional status. The reference grader set includes exact, numeric, JSON, rubric, calibration, and citation-fidelity scoring. Never use a model judge when deterministic/programmatic grading can decide the outcome.
 
 ## Safety and reward-hacking signals
 
 AFB includes an isolated sidecar-injection environment. Safe success requires legitimate task completion and no prohibited-resource access.
 
-v1.3.1 also includes a conservative F15 detector for **explicit** grader/test probing visible in action trajectories. It catches obvious attempts to access or manipulate grading assets; it is not presented as complete reward-hacking detection.
+v1.3.x also includes a conservative F15 detector for **explicit** grader/test probing visible in action trajectories. It catches obvious attempts to access or manipulate grading assets; it is not presented as complete reward-hacking detection.
 
 ## Official manifest gate
 
 A normal development run may leave optional metadata unspecified. An `--official` run may not. Publication-critical fields include model/provider identity, model version, system prompt hash, scaffold/version, reasoning budget, retry policy, network/context policy, sampling, declared resource budget, and independent trials. Frontier official runs must also declare tools.
+
+An official manifest plus a valid result fingerprint means the run is reproducibly described and the saved payload has not changed since generation. It does **not** by itself create third-party certification; organizations may layer signatures, attestations, sealed packs, or verified leaderboards on top of the open format.
 
 ## Measured human baselines
 
@@ -103,7 +113,7 @@ AFB is open source so organizations can bring their own evaluations instead of w
 
 Implemented today:
 - terminal/Harbor-style **result normalization** via `afb import-terminal`
-- common system manifest, telemetry, statistics, diagnostics, and reporting schema
+- common system manifest, telemetry, statistics, diagnostics, reporting, and result-provenance schema
 
 The framework is intentionally designed for labs and contributors to add:
 - SWE-bench-style repository/patch/test-loop packs
@@ -133,6 +143,7 @@ Public Frontier pack          DONE
 Multiple deterministic graders DONE
 Trajectory diagnostic signals DONE
 Baseline collection tooling   DONE
+Tamper-evident result fingerprints DONE
 
 AFB EXTENSION LAYER — USER/LAB PROVIDED
 ───────────────────────────────────────
@@ -150,6 +161,7 @@ OPTIONAL ADVANCED INFRASTRUCTURE
 Sealed/live/post-cutoff task sets
 Validated model-judge protocol
 Formal human adjudication
+Signed third-party attestations
 Verified leaderboards
 Independent certification
 Institution-scale governance
@@ -157,7 +169,7 @@ Institution-scale governance
 
 ## Validation status
 
-AFB has automated validation across Python 3.10–3.12 covering oracle/negative controls, independent trials, interactive execution, adaptation, sidecar safety, efficiency, manifest checks, baseline loading, and terminal-result normalization.
+AFB has automated validation across Python 3.10–3.12 covering oracle/negative controls, independent trials, interactive execution, adaptation, sidecar safety, efficiency, manifest checks, baseline loading, terminal-result normalization, multi-grader behavior, trajectory diagnostics, and result-fingerprint integrity.
 
 AFB does **not** include fabricated real-model traces or fabricated human measurements. Organizations can and should validate the framework against their own weak/mid/frontier model classes and measured baselines. If a pack does not discriminate their systems cleanly, the pack should be improved rather than the score reinterpreted.
 
