@@ -13,6 +13,7 @@ from afb.baselines import (
     record_human_timing, compile_human_baselines,
 )
 from afb.external.terminal import normalize_terminal_results
+from afb.provenance import verify_result_file
 
 
 def _parse_tool_versions(items):
@@ -91,6 +92,9 @@ def main():
     t=sp.add_parser("import-terminal",help="Normalize terminal-benchmark JSON/JSONL results into AFB telemetry")
     t.add_argument("--input",required=True); t.add_argument("--output")
 
+    vr=sp.add_parser("verify-result",help="Verify the SHA-256 fingerprint of an AFB run log")
+    vr.add_argument("--input",required=True)
+
     br=sp.add_parser("baseline-record",help="Record one observed human task completion time")
     br.add_argument("--samples",required=True); br.add_argument("--task-id",required=True); br.add_argument("--seconds",type=float,required=True)
     br.add_argument("--participant",default="anonymous"); br.add_argument("--population",default="unspecified")
@@ -105,6 +109,10 @@ def main():
         if a.output:
             from pathlib import Path; Path(a.output).write_text(text,encoding="utf-8")
         print(text); return
+    if a.cmd=="verify-result":
+        result=verify_result_file(a.input); print(json.dumps(result,indent=2));
+        if not result["valid"]: raise SystemExit(2)
+        return
     if a.cmd=="baseline-record":
         obj=record_human_timing(a.samples,a.task_id,a.seconds,a.participant,a.population)
         print(json.dumps({"recorded":True,"sample_count":len(obj["samples"]),"samples":a.samples},indent=2)); return
