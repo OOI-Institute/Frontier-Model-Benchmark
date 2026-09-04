@@ -1,12 +1,28 @@
 {
-  "benchmark": "AFB v1.0",
+  "benchmark": "AFB v1.3.0",
   "profiles": {
-    "Smoke-48": 48,
-    "Core-300": 300
+    "Smoke-48": "4 procedural instances x 12 domains",
+    "Diagnostic-300": "25 procedural instances x 12 domains",
+    "Frontier": "open mixed text + interactive execution profile"
   },
   "domains": 12,
-  "agent_environment_api": "validated",
-  "oracle_smoke_pass_at_1": 1.0,
-  "weak_control_smoke_pass_at_1": 0.1667,
-  "validation": "PASS"
+  "ci_python_versions": ["3.10", "3.11", "3.12"],
+  "validated_components": [
+    "oracle Smoke-48 positive control",
+    "weak negative-control discrimination threshold",
+    "independent trial accounting",
+    "retry/trial separation",
+    "interactive environment execution",
+    "mid-task adaptation",
+    "sidecar safety controls",
+    "budget-relative efficiency",
+    "official manifest completeness gate",
+    "measured human baseline loader",
+    "terminal result normalization"
+  ],
+  "framework_validation": "PASS",
+  "real_model_multiclass_validation": "PENDING",
+  "measured_human_baseline_study": "PENDING",
+  "publication_grade_frontier_claims": "NOT_YET_QUALIFIED",
+  "note": "AFB does not treat oracle/weak controls as evidence of real frontier-model construct validity. Real weak/mid/frontier model traces across unused seeds are still required."
 }
