@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.3.2 — Pre-v2 closure release
+
+### Added
+
+- Deterministic SHA-256 fingerprints over canonical AFB run payloads.
+- `afb verify-result --input <run.json>` for local integrity verification of saved run logs.
+- Capability Card display of the result fingerprint.
+- Explicit `frontier_score_missing_evidence` reasons when the aggregate is unavailable.
+- Regression tests proving result fingerprints validate unchanged payloads and fail after mutation.
+
+### Clarified
+
+- Result fingerprints provide tamper-evidence for the serialized AFB payload; they are not third-party execution attestation or certification.
+- Signed attestations, sealed/live packs, verified leaderboards, and independent certification remain optional ecosystem layers that can be added without changing the open AFB experiment/result format.
+- At the end of v1.3.x, remaining roadmap work is intentionally external/empirical rather than a missing core framework requirement: organizations may supply their own real-model studies, human baselines, private/sealed tasks, domain environments, model-judge protocols, adjudication processes, and verified-result infrastructure.
+
 ## 1.3.1 — Final v1.3 closure release
 
 ### Added
