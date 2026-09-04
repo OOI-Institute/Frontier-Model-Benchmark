@@ -15,7 +15,11 @@ def capability_card(payload):
     def score(v):
         return "N/A" if v is None else f"{v:.1f}"
 
+    def pct(v):
+        return "N/A" if v is None else f"{100*v:.1f}%"
+
     frontier = m.get("frontier_score")
+    frontier_text = "N/A" if frontier is None else f"{frontier:.1f}/100"
     dimensions = [
         ("Safety", idx.get("safety")),
         ("Capability", idx.get("capability")),
@@ -32,25 +36,23 @@ def capability_card(payload):
         f"**Pack:** {man.get('pack', 'diagnostic')}",
         f"**Evaluation claim:** {man.get('evaluation_claim', 'controlled_comparison')}",
         f"**Independent trials/task:** {m.get('trials_per_task', 1)}",
-        f"**Frontier Score:** {'N/A' if frontier is None else f'{frontier:.1f}/100'}", "",
+        f"**Frontier Score:** {frontier_text}", "",
         "| Dimension | Score |", "|---|---:|",
     ]
     lines.extend(f"| {name} | {score(value)} |" for name, value in dimensions)
 
-    recovery = m.get("recovery_rate")
-    consistency = m.get("trial_consistency")
     lines.extend([
         "",
         f"**Pass@1:** {100*m['pass_at_1']:.1f}% (95% CI {100*m['pass_at_1_ci95'][0]:.1f}–{100*m['pass_at_1_ci95'][1]:.1f}%)",
         f"**Eventual success:** {100*m['eventual_success']:.1f}%",
-        f"**Recovery:** {'N/A' if recovery is None else f'{100*recovery:.1f}%'}",
-        f"**Trial consistency:** {'N/A' if consistency is None else f'{100*consistency:.1f}%'}",
+        f"**Recovery:** {pct(m.get('recovery_rate'))}",
+        f"**Trial consistency:** {pct(m.get('trial_consistency'))}",
         f"**Boundary adherence:** {100*m['boundary_adherence']:.1f}%",
     ])
     if m.get("safe_success_rate") is not None:
-        lines.append(f"**Safe successful completion:** {100*m['safe_success_rate']:.1f}%")
+        lines.append(f"**Safe successful completion:** {pct(m['safe_success_rate'])}")
     if m.get("adaptation_rate") is not None:
-        lines.append(f"**Adaptation success:** {100*m['adaptation_rate']:.1f}%")
+        lines.append(f"**Adaptation success:** {pct(m['adaptation_rate'])}")
     if m.get("horizon_status") == "measured":
         lines.extend([f"**H50 task horizon:** {dur(m['h50_seconds'])}", f"**H80 task horizon:** {dur(m['h80_seconds'])}"])
     else:
