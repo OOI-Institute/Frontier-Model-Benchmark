@@ -33,21 +33,33 @@ class CommandAdapter(ModelAdapter):
 
 
 class OpenAICompatibleAdapter(ModelAdapter):
-    """Minimal /chat/completions adapter with normalized token telemetry when returned by the provider."""
-    def __init__(self, base_url, model, api_key=None, timeout_s=120):
+    """Minimal /chat/completions adapter with normalized telemetry."""
+    def __init__(self, base_url, model, api_key=None, timeout_s=120,
+                 temperature=0.0, top_p=None, max_output_tokens=None, seed=None):
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.api_key = api_key or os.getenv("MODEL_API_KEY", "")
         self.timeout_s = timeout_s
+        self.temperature = temperature
+        self.top_p = top_p
+        self.max_output_tokens = max_output_tokens
+        self.seed = seed
         self.name = f"openai-compatible:{model}"
         self.last_usage = {}
 
     def generate(self, prompt):
-        body = json.dumps({
+        request = {
             "model": self.model,
             "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0,
-        }).encode()
+            "temperature": self.temperature,
+        }
+        if self.top_p is not None:
+            request["top_p"] = self.top_p
+        if self.max_output_tokens is not None:
+            request["max_tokens"] = self.max_output_tokens
+        if self.seed is not None:
+            request["seed"] = self.seed
+        body = json.dumps(request).encode()
         headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
@@ -61,8 +73,7 @@ class OpenAICompatibleAdapter(ModelAdapter):
         self.last_usage = {
             "input_tokens": usage.get("prompt_tokens") or usage.get("input_tokens"),
             "output_tokens": usage.get("completion_tokens") or usage.get("output_tokens"),
-            # Cost is provider/pricing-version specific; adapters must supply it explicitly when known.
-            "cost_usd": None,
+            "cost_usd": usage.get("cost_usd"),
             "action_count": 0,
         }
         return obj["choices"][0]["message"]["content"]
