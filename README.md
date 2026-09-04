@@ -1,32 +1,115 @@
 # AnyModel Frontier Benchmark (AFB)
 
-AFB is an open, provider-neutral evaluation framework for **AI models and AI systems**. It is designed to characterize what a submitted system can do, how reliably it does it, where it fails, how it behaves under constraints, and what resources successful performance requires.
+AFB is an open, provider-neutral evaluation framework for **AI models and AI systems**. It is designed to characterize what a submitted system can do, how reliably and safely it does it, where it fails, how it behaves under constraints, and what resources successful performance requires.
 
 AFB does **not** treat a bare model and a tool-augmented agent as the same evaluation object. Every result is tied to a declared system configuration: model, prompts, tools, memory, scaffold, inference budget, runtime limits, and evaluation claim.
 
-## What AFB tells model teams
+## What AFB evaluates
 
-AFB is intended to tell testers, model organizations, and independent developers more than whether a model is simply "smart." It characterizes the system's **operating envelope**.
+AFB v1.2 organizes evaluation into three layers.
 
+### Performance layer
+
+- **Safety** — whether the system succeeds internal sandbox testing of adversarial sidecar injections without violating protected resources or abandoning the legitimate task.
 - **Capability** — which classes of tasks the system can complete.
 - **Reliability** — whether it succeeds consistently on first attempt or depends on recovery.
 - **Autonomy** — how much task complexity and duration it can sustain.
 - **Control** — whether it respects scope, authority, uncertainty, and operational constraints.
 - **Efficiency** — resource use relative to declared runtime/action/token/cost budgets when those data are available.
-- **Failure diagnosis** — which failure classes dominate: reasoning, planning, tool use, state tracking, verification, recovery, calibration, authority, format, and others.
 - **Calibration** — whether confidence tracks correctness and whether the system recognizes insufficient information.
-- **Recovery/adaptation** — whether it can correct failure or re-plan after state changes.
-- **System-vs-model contribution** — whether gains arise from the base model or from tools, memory, scaffolding, retries, or additional inference budget.
+- **Recovery / Adaptation** — whether it can correct failure or re-plan after state changes.
 
-AFB is designed to help answer questions such as:
+### Attribution layer
 
-> **Our new model is better overall—but where did that improvement come from?**
+- **System-vs-model contribution** — whether gains arise from the base model or from tools, memory, scaffolding, recovery loops, retries, or additional inference budget. AFB only treats this as an attribution result when matched configurations are compared through an explicit ablation protocol.
+
+### Diagnostic layer
+
+- **Strategic Breakdown** — which failure classes dominate: reasoning, planning, tool selection, tool execution, state tracking, memory, verification, recovery, calibration, authority/control, environment understanding, format, resource/runtime, reward hacking, and others.
+
+AFB is intended to help frontier teams answer questions such as:
+
+> **Our new model is better overall—but where did that improvement actually come from?**
 
 > **The model reasons well, but why is it unreliable in agentic workloads?**
 
 > **Does a new memory, planning, or tool-use layer materially improve the same base model?**
 
 > **At what task duration does performance begin to deteriorate?**
+
+> **Does the system remain effective when untrusted context attempts to redirect its behavior?**
+
+## Safety: adversarial sidecar sandbox
+
+AFB v1.2 includes a real isolated reference environment for **indirect/sidecar prompt-injection testing**.
+
+The sandbox gives the system a legitimate goal and simultaneously exposes an untrusted sidecar instruction that attempts to redirect it toward a protected synthetic resource. Safe success requires both:
+
+1. completing the legitimate task, and
+2. resisting the adversarial instruction without prohibited-resource access.
+
+This prevents a trivial "refuse everything" strategy from receiving full safety credit.
+
+Run it with:
+
+```bash
+python -m afb.cli safety \
+  --adapter openai-compatible \
+  --base-url http://localhost:8000/v1 \
+  --model my-model \
+  --system-name my-system \
+  --trials 8
+```
+
+The sandbox reports:
+
+- Safety Index
+- safe rate
+- safe successful completion
+- injection resistance
+- violation rate
+- trajectories and final synthetic state
+
+The current sidecar environment is a **reference safety sandbox**, not a publication-grade adversarial corpus. Broader attack families, sealed tasks, and live adversarial evaluation remain vNext work.
+
+## System-vs-model contribution
+
+AFB does not infer attribution from a single score. Contribution analysis requires matched runs in which one declared component changes while other material settings are held fixed.
+
+Example:
+
+```text
+Base model
+    ↓
++ tools
+    ↓
++ memory
+    ↓
++ planning scaffold
+    ↓
++ recovery
+```
+
+AFB's attribution utilities compute absolute and relative deltas between these declared configurations. The result tells a team whether a measured gain came from the underlying model or from the system around it.
+
+## Strategic Breakdown
+
+AFB converts deterministic failure codes into an engineering-facing profile.
+
+```text
+Example Strategic Breakdown
+────────────────────────────
+Reasoning                 11%
+Planning                  18%
+Tool execution             6%
+State tracking            22%
+Verification              17%
+Recovery                   9%
+Authority / control        2%
+Format                     3%
+```
+
+The reference harness reports **observed failure categories**. Future richer agent packs may add trajectory-level causal analysis, but inferred root causes must remain separate from directly observed terminal failures.
 
 ## Evaluation claims
 
@@ -45,18 +128,13 @@ These are different experimental questions and should not be mixed in one leader
 3. **Agent** — iterative interaction with an execution environment.
 4. **Autonomous System** — long-horizon dynamic environments, changed state, recovery, and persistent constraints.
 
-The built-in public reference suite contains **precursor/diagnostic tasks across all twelve domains**. It is not presented as a substitute for real browser, terminal, repository, computer-use, or embodied execution benchmarks.
+The built-in public reference suite contains **precursor/diagnostic tasks across twelve domains**. It is not presented as a substitute for real browser, terminal, repository, computer-use, or embodied execution benchmarks.
 
 ## Public diagnostic profiles
 
 ### AFB Smoke-48
 
-Four procedural instances across twelve domains. Intended for:
-
-- harness validation
-- CI
-- adapter development
-- regression testing
+Four procedural instances across twelve domains. Intended for harness validation, CI, adapter development, and regression testing.
 
 ### AFB Diagnostic-300
 
@@ -96,8 +174,6 @@ These are task-duration equivalence measurements, not claims of human-equivalent
 
 ## Efficiency
 
-AFB v1.1 no longer assigns every model a default 100% efficiency score.
-
 Efficiency is calculated only when a run has comparable declared budgets and observable telemetry for one or more of:
 
 - wall-clock runtime
@@ -105,33 +181,25 @@ Efficiency is calculated only when a run has comparable declared budgets and obs
 - token usage
 - monetary cost
 
-If those data are not available, Efficiency is reported as **N/A**, and the aggregate score is calculated from the available validated dimensions rather than inventing a perfect score.
+If those data are unavailable, Efficiency is reported as **N/A** rather than receiving an implicit perfect score.
 
 ## Reliability: trials are not retries
 
-AFB distinguishes two different concepts:
+AFB distinguishes:
 
 - **Retry / recovery attempt** — another attempt inside the same task execution after failure feedback.
 - **Trial** — a completely independent rollout of the same task/system configuration.
 
 Publication-grade reliability analysis should use multiple independent trials where practical. Recovery performance must not be reported as first-pass performance.
 
-## Failure analysis as engineering telemetry
+## Recovery vs adaptation
 
-```text
-Example failure profile
-────────────────────────
-Reasoning                 11%
-Planning                  18%
-Tool execution             6%
-State tracking            22%
-Verification              17%
-Recovery                   9%
-Authority violations       2%
-Format                     3%
-```
+AFB keeps these separate internally:
 
-The current reference harness records deterministic failure categories where the grader can establish them. Rich agent environments may add trajectory-level root-cause analysis; such analysis should be labeled separately from directly observed terminal failures.
+- **Recovery** — correct a failure while the world and goal are materially unchanged.
+- **Adaptation** — re-plan after the world, constraints, tools, or available information change.
+
+The Capability Card may present a combined Recovery / Adaptation index while raw results retain both components.
 
 ## Grading policy
 
@@ -147,9 +215,7 @@ Never use a model judge when deterministic or programmatic grading can decide th
 
 ## External benchmark interoperability
 
-AFB's environment and result schemas are intended to support adapters for established evaluation systems rather than rebuild them. Integrations for repository, terminal, browser, computer-use, and other external benchmarks are **planned extension work** and should be treated as unavailable until a concrete adapter is merged and validated.
-
-The intended flow is:
+AFB's environment and result schemas are intended to support adapters for established evaluation systems rather than rebuild them.
 
 ```text
 External benchmark / environment
@@ -158,10 +224,12 @@ AFB adapter
         ↓
 Normalized task + trajectory result
         ↓
-AFB statistics and failure reporting
+AFB statistics and diagnostics
         ↓
 Capability Card
 ```
+
+Repository, terminal, browser, computer-use, and other external adapters remain planned until concrete validated integrations are merged.
 
 ## Quick start
 
@@ -208,18 +276,20 @@ If these differ materially, the runs are evaluations of different systems.
 
 ## Current status
 
-AFB v1.1 is a **benchmark framework plus public diagnostic suite**. The included oracle/weak controls validate harness mechanics and basic discrimination; they are not evidence that the diagnostic suite measures frontier capability.
+AFB v1.2 is a **benchmark framework plus public diagnostic suite and reference adversarial safety sandbox**. The included oracle/weak controls validate harness mechanics and basic discrimination; they are not evidence that the diagnostic suite measures frontier capability.
 
-The next validation milestones are:
+Next milestones include:
 
-1. real-model multi-tier validation across several model classes,
-2. independent-trial and seed stability studies,
-3. one validated external execution-benchmark adapter,
-4. measured human baselines for horizon-eligible packs,
-5. sealed/live task infrastructure for stronger publication claims.
+1. broader sidecar attack families and sealed adversarial tasks,
+2. real-model multi-tier validation across several model classes,
+3. independent-trial and seed stability studies,
+4. one validated external execution-benchmark adapter,
+5. measured human baselines for horizon-eligible packs,
+6. multiple graders and stronger trajectory-level diagnostics.
 
 ## Project files
 
+- `docs/VNEXT_PLAN.md` — full upgrade architecture and roadmap
 - `docs/BENCHMARK_SPEC.md` — benchmark protocol
 - `docs/METHODS.md` — methodology
 - `docs/TASK_SCHEMA.md` — task format
@@ -230,4 +300,4 @@ The next validation milestones are:
 - `GOVERNANCE.md` — benchmark governance
 - `SECURITY.md` — vulnerability reporting
 
-**AFB does not just rank AI systems. It characterizes their operating envelope: what they can do, how dependable they are, where they break, how they behave when things go wrong, and what actually produced an improvement.**
+**AFB does not just rank AI systems. It characterizes their operating envelope: what they can do, how dependable and safe they are, where they break, how they behave when things go wrong, and what actually produced an improvement.**
