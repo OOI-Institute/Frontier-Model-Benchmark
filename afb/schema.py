@@ -122,7 +122,6 @@ class Task:
     secondary_domains: list[str]
     prompt: str
     grader: dict[str, Any] | None = None
-    graders: list[GraderSpec] = field(default_factory=list)
     difficulty_tier: int = 1
     human_baseline: HumanBaseline = field(default_factory=HumanBaseline)
     affordances: list[str] = field(default_factory=list)
@@ -138,6 +137,9 @@ class Task:
     budget_tokens: int | None = None
     budget_cost_usd: float | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
+    # Appended at the end to preserve the legacy positional Task constructor used by
+    # public packs while enabling first-class named/weighted multi-grader tasks.
+    graders: list[GraderSpec] = field(default_factory=list)
 
     def grader_specs(self) -> list[GraderSpec]:
         if self.graders:
