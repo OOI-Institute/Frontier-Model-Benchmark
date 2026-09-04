@@ -1,38 +1,69 @@
-# AFB Benchmark Specification v1.1
+# AFB Benchmark Specification v1.2
 
 ## Evaluation object
 
-AFB evaluates a declared **system-under-test**:
+AFB evaluates a **system-under-test**:
 
 `model + prompts + harness + tools + memory + inference budget + environment`
 
-A result is not a model-only score unless all non-model factors are held constant.
+A result is not a "model score" unless all non-model factors are held constant.
 
-## Evaluation claim
+## Evaluation outputs
 
-Every run declares one of:
+AFB v1.2 separates three classes of output.
 
-- `controlled_comparison`
-- `maximum_elicitation`
-- `safeguard_evaluation`
+### Performance
 
-The claim type is part of the result manifest because different evaluation goals permit different harness and elicitation choices.
+- Safety
+- Capability
+- Reliability
+- Autonomy
+- Control
+- Efficiency
+- Calibration
+- Recovery / Adaptation
+
+### Attribution
+
+- System-vs-model contribution through matched ablation runs
+
+### Diagnostics
+
+- Strategic Breakdown of observed failure classes
+
+The primary dimension vector is more important than the aggregate Frontier Score.
+
+## Safety
+
+Safety measures whether the system maintains intended behavior under adversarial pressure while still completing legitimate work where possible.
+
+The reference implementation includes an isolated indirect/sidecar-injection sandbox. Qualified safety packs may test:
+
+- direct prompt injection
+- indirect/document injection
+- tool-output injection
+- authority spoofing
+- goal hijacking
+- privilege escalation
+- sensitive-resource access attempts
+- memory poisoning
+- retrieval poisoning
+
+Safety results should separate raw task success, safe successful completion, injection resistance, and violations. Blanket refusal is not equivalent to safe task completion.
 
 ## Evaluation levels
 
 ### Level 1 — Core
-No external execution tools.
+No external tools. Tests reasoning, mathematics, abstraction, structure, calibration, knowledge, and instruction following.
 
 ### Level 2 — Tool
-Declared standardized tool affordances.
+Standardized declared tool affordances. Measures tool choice, execution, synthesis, and verification.
 
 ### Level 3 — Agent
-Interactive execution environments with observe/act loops and terminal-state grading.
+Interactive environments. Measures planning, action, state tracking, recovery, terminal-state success, and where applicable safeguard behavior.
 
 ### Level 4 — Autonomous
-Long-running dynamic environments with changed state, faults, persistence, and constraint boundaries.
-
-The public diagnostic suite may contain precursor tasks related to these domains; it should not be cited as evidence of full Level 3/4 execution capability without a real environment pack.
+Long-running dynamic environments with changed constraints, fault injection, persistent state, authority boundaries, and adversarial context.
 
 ## Domains
 
@@ -49,16 +80,21 @@ A10 Recovery & Adaptation
 A11 Professional Work  
 A12 Judgment / Authority / Safety  
 
-## Public profiles
+Safety is also a cross-cutting dimension and may be measured across multiple task domains rather than only A12.
 
-- **Smoke-48** — CI, adapter, and harness validation.
-- **Diagnostic-300** — procedural development diagnostics.
+## Evaluation claims
 
-Neither public procedural profile alone is sufficient for frontier-capability claims.
+Every run declares one primary claim type:
+
+- `controlled_comparison`
+- `maximum_elicitation`
+- `safeguard_evaluation`
+
+These are different experimental questions and should not be combined as though they were interchangeable.
 
 ## Benchmark visibility tiers
 
-AFB-compatible packs may be:
+AFB-compatible task packs may be:
 
 - public-dev
 - public-eval
@@ -66,49 +102,65 @@ AFB-compatible packs may be:
 - sealed
 - live/post-cutoff
 
-Strong frontier claims should include tasks that materially reduce contamination risk, such as sealed or live/post-cutoff evaluation, when feasible.
-
-## Human-baseline provenance
-
-Human baseline metadata must declare `measured`, `estimated`, or `none`.
-
-Official H50/H80 horizon estimates require measured baseline data. Estimated times may be retained for development metadata but are not horizon-eligible.
+Published frontier claims should include at least one sealed or live set.
 
 ## Task admission criteria
 
-Serious benchmark tasks should satisfy:
+Every serious benchmark task should satisfy:
 
 - realism
 - construct validity
 - solvability by qualified humans
 - objective terminal-state determination where possible
-- anti-shortcut / anti-reward-hacking review
+- anti-cheat resistance
 - discrimination among systems
 - remaining frontier headroom
 - stable/reconstructable environment
-- documented human-difficulty provenance
+- measured human difficulty where horizon claims are made
 - reproducible initialization
+- explicit safety/authority boundaries where applicable
 
-## Repetition and recovery
+## Reliability and repetition
 
 AFB distinguishes:
 
-- **trial** — an independent rollout from initial state,
-- **retry/attempt** — another attempt inside one rollout,
-- **pass@1** — first-trial/first-attempt success as defined by the pack,
-- **eventual success** — success within explicitly permitted recovery,
-- **consistency** — repeated independent success,
-- **recovery rate** — correction after an initial failure.
+- first-attempt success
+- eventual success after authorized recovery
+- independent trials
+- repeated consistency
+- recovery
+- adaptation
 
-Do not collapse retries into first-pass success.
+A retry inside one rollout is not an independent trial.
 
-## Efficiency and budgets
+For low-cost tasks, multiple independent trials are recommended. For high-cost tasks, a single rollout may be acceptable only when the limitation is disclosed.
 
-Runs may declare runtime, action, token, call, and cost budgets. Efficiency is computed only from dimensions for which both comparable budget and observed telemetry exist. Missing data are reported as unavailable, not assumed perfect.
+## Recovery and adaptation
+
+- **Recovery:** correction after failure while the task/world is materially unchanged.
+- **Adaptation:** re-planning after changed state, constraints, available tools, or information.
+
+These are measured separately in raw results and may be summarized jointly on a public Capability Card.
+
+## System-vs-model contribution
+
+Attribution requires matched configurations. AFB must not claim that a gain came from a component unless the comparison controls other material changes.
+
+Example sequence:
+
+`base → +tools → +memory → +scaffold → +recovery`
+
+AFB records absolute and relative score deltas for each declared transition.
+
+## Strategic Breakdown
+
+Observed failure codes are normalized into engineering-facing categories such as reasoning, planning, tool execution, state tracking, verification, recovery, calibration, authority, environment, format, and reward hacking.
+
+Directly observed failure categories must remain distinguishable from inferred trajectory-level root causes.
 
 ## Fault injection
 
-Agent/autonomous packs may use controlled disruptions such as:
+Agent/autonomous packs should support controlled disruptions such as:
 
 - tool failure
 - stale information
@@ -117,20 +169,10 @@ Agent/autonomous packs may use controlled disruptions such as:
 - changed constraint
 - corrupted artifact
 - delayed external event
+- adversarial sidecar/context injection
 
-Fault timing should be randomized, sealed, or otherwise protected from direct benchmark-specific optimization for serious studies.
+Fault/injection timing should be randomized or sealed for serious runs.
 
-## Result integrity
+## Aggregate scoring
 
-Official or publication-grade results should preserve:
-
-- benchmark/task-pack version,
-- complete system manifest,
-- evaluation claim type,
-- trial count,
-- retry policy,
-- raw outputs/trajectories where releasable,
-- grader identity/version,
-- task exclusions and reasons,
-- confidence intervals,
-- budget and telemetry availability.
+The Frontier Score is a geometric aggregate over only dimensions with valid evidence. Missing dimensions remain `N/A` and are not assigned perfect defaults.
