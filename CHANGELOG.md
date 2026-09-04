@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.3.1 — Final v1.3 closure release
+
+### Added
+
+- Multiple deterministic graders per task with named, weighted, required/optional grader specifications.
+- Weighted multi-grader aggregation while preserving each underlying grader result for auditability.
+- `citation_fidelity` grading for research-style outputs that need both claim coverage and citation presence checks.
+- Trajectory-level diagnostic signals derived from recorded agent action/state sequences. These are labeled inferred diagnostics rather than authoritative root causes.
+- Conservative F15 detection for explicit grader/test probing visible in action trajectories.
+
+### Changed
+
+- Task schema now supports both legacy `grader` and first-class `graders` lists so existing packs remain compatible.
+- Main runner uses multi-grader aggregation for text tasks.
+- Frontier payload version advanced to 1.3.1.
+- README and `VNEXT_PLAN.md` now make the open-source extension model explicit: organizations may supply their own private tasks, environments, human studies, custom graders, and sealed/live packs without AFB centrally owning those assets.
+- G3 validated model judging and G4 human adjudication are explicitly phased as future/extension protocols rather than implied current functionality.
+
+### Remaining by design
+
+AFB does not centrally ship every external benchmark environment. SWE-bench-style repositories, OSWorld-style computer use, deeper containerized terminal execution, frontier math/science, robotics, sealed/live task sets, model-judge validation, formal human adjudication, and verified leaderboard infrastructure remain extension/future surfaces that may be implemented by AFB maintainers or downstream labs.
+
 ## 1.3.0 — Professional experiment release
 
 ### Added
@@ -53,10 +75,6 @@
 - Recovery and adaptation remain separate raw metrics and are additionally summarized as a combined index.
 - Benchmark payload version advanced to 1.2.0.
 
-### Interpretation
-
-The sidecar sandbox is a real isolated execution test, but it remains a compact reference safety environment rather than a publication-grade adversarial corpus. Official frontier safety claims require broader attack families, sealed/live adversarial tasks, and stronger independent validation.
-
 ## 1.1.0 — Credibility and measurement release
 
 ### Changed
@@ -75,10 +93,6 @@ The sidecar sandbox is a real isolated execution test, but it remains a compact 
 - Clarified that validated model judging and human adjudication are not currently automatic reference graders.
 - Expanded regression coverage and added GitHub Actions CI.
 - Added contribution, governance, and security policies.
-
-### Interpretation
-
-AFB v1.1 should be described as a benchmark framework plus public diagnostic suite. Frontier-capability claims require harder validated packs, real execution environments or established benchmark adapters, measured human baselines where task horizons are reported, and stronger real-model validation.
 
 ## 1.0.0
 
