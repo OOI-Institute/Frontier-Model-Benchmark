@@ -11,6 +11,7 @@ SafetyFamily = Literal[
     "sensitive_resource_access", "memory_poisoning", "retrieval_poisoning"
 ]
 
+
 @dataclass
 class SystemManifest:
     system_name: str
@@ -20,6 +21,8 @@ class SystemManifest:
     api_version: str = "unknown"
     evaluation_claim: EvaluationClaim = "controlled_comparison"
     level: Level = "core"
+    pack: str = "diagnostic"
+    official: bool = False
     system_prompt_hash: str = ""
     tools: list[str] = field(default_factory=list)
     tool_versions: dict[str, str] = field(default_factory=dict)
@@ -28,6 +31,7 @@ class SystemManifest:
     scaffold_version: str = "unknown"
     harness_commit_sha: str = ""
     reasoning_budget: str = "standard"
+    retry_policy: str = "task_defined"
     temperature: float | None = 0.0
     top_p: float | None = None
     inference_seed: int | None = None
@@ -43,6 +47,33 @@ class SystemManifest:
     parent_configuration: str | None = None
     notes: str = ""
 
+    def official_missing_fields(self) -> list[str]:
+        required = {
+            "system_name": self.system_name,
+            "provider": self.provider,
+            "base_model": self.base_model,
+            "model_version": self.model_version,
+            "system_prompt_hash": self.system_prompt_hash,
+            "scaffold": self.scaffold,
+            "scaffold_version": self.scaffold_version,
+            "reasoning_budget": self.reasoning_budget,
+            "retry_policy": self.retry_policy,
+            "network_policy": self.network_policy,
+            "context_policy": self.context_policy,
+        }
+        missing = [
+            key for key, value in required.items()
+            if value is None or str(value).strip() in {"", "unknown", "unnamed-system"}
+        ]
+        if self.temperature is None:
+            missing.append("temperature")
+        if not any(v is not None for v in (
+            self.max_runtime_s, self.max_actions, self.max_total_tokens, self.max_cost_usd
+        )):
+            missing.append("at_least_one_budget")
+        return missing
+
+
 @dataclass
 class HumanBaseline:
     source: BaselineSource = "none"
@@ -56,12 +87,14 @@ class HumanBaseline:
     def horizon_eligible(self) -> bool:
         return self.source == "measured" and self.n > 0 and self.median_seconds is not None
 
+
 @dataclass
 class FaultSpec:
     enabled: bool = False
     kind: str | None = None
     trigger_step: int | None = None
     payload: dict[str, Any] = field(default_factory=dict)
+
 
 @dataclass
 class SafetySpec:
@@ -70,6 +103,7 @@ class SafetySpec:
     protected_resources: list[str] = field(default_factory=list)
     legitimate_goal_required: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)
+
 
 @dataclass
 class Task:
@@ -96,6 +130,7 @@ class Task:
     budget_cost_usd: float | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
+
 @dataclass
 class Attempt:
     attempt: int
@@ -113,6 +148,7 @@ class Attempt:
     input_tokens: int | None = None
     output_tokens: int | None = None
     cost_usd: float | None = None
+
 
 @dataclass
 class TaskResult:
@@ -133,16 +169,28 @@ class TaskResult:
     safety_sensitive: bool = False
     safety_family: SafetyFamily | None = None
     safe_success: bool | None = None
+    trajectory: list[dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self):
         return asdict(self)
 
+
 @dataclass
 class TrialResult:
-    """One independent rollout of a task. Trials are distinct from retries inside a rollout."""
+    """One independent rollout. Retries inside a rollout remain Attempt records."""
     task_id: str
     trial_index: int
+    seed: int
     result: TaskResult
+
+    def to_dict(self):
+        return {
+            "task_id": self.task_id,
+            "trial_index": self.trial_index,
+            "seed": self.seed,
+            "result": self.result.to_dict(),
+        }
+
 
 @dataclass
 class ContributionResult:
