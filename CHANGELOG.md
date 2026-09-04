@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.2.0 — Evaluation-model expansion
+
+### Added
+
+- First-class **Safety** evaluation architecture.
+- Isolated adversarial **sidecar-injection sandbox** for safeguard testing.
+- Safety metrics: safe rate, safe successful completion, injection resistance, violation rate, and Safety Index.
+- Expanded headline dimension vector: Safety, Capability, Reliability, Autonomy, Control, Efficiency, Calibration, Recovery / Adaptation.
+- **Strategic Breakdown** engineering profile derived from deterministic failure classes.
+- **System-vs-model contribution** analysis utilities for matched ablation runs.
+- Safety and contribution metadata in the core schema.
+- `afb safety` CLI command for sidecar-injection evaluation.
+- Full vNext architecture plan in `docs/VNEXT_PLAN.md`.
+- Regression tests for safety sandbox behavior, strategic diagnostics, and attribution deltas.
+
+### Changed
+
+- Frontier Score now aggregates only dimensions with valid evidence; missing dimensions remain `N/A`.
+- Capability Card now exposes the full vNext evaluation vector and Strategic Breakdown.
+- Recovery and adaptation remain separate raw metrics and are additionally summarized as a combined index.
+- Benchmark payload version advanced to 1.2.0.
+
+### Interpretation
+
+The sidecar sandbox is a real isolated execution test, but it remains a compact reference safety environment rather than a publication-grade adversarial corpus. Official frontier safety claims require broader attack families, sealed/live adversarial tasks, and stronger independent validation.
+
 ## 1.1.0 — Credibility and measurement release
 
 ### Changed
