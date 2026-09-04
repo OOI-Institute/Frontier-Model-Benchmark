@@ -1,10 +1,10 @@
 from afb.packs.reference import generate_reference_suite
 from afb.packs.frontier import generate_frontier_suite
 from afb.oracle import OracleAdapter, WeakAdapter
-from afb.schema import SystemManifest
+from afb.schema import SystemManifest, Task, GraderSpec
 from afb.runner import run_suite
 from afb.stats import efficiency_score
-from afb.diagnostics import strategic_breakdown
+from afb.diagnostics import strategic_breakdown, trajectory_diagnostics, detect_reward_hacking
 from afb.attribution import contribution_delta
 from afb.safety import run_sidecar_safety_suite
 from afb.baselines import load_human_baselines, apply_human_baselines, record_human_timing, compile_human_baselines
@@ -42,8 +42,6 @@ def test_multitrial_experiment_separates_trials_from_retries():
         assert p["manifest"]["rollout_count"]==len(tasks)*3
         assert p["metrics"]["trial_consistency"]==1.0
         assert all(x["trial_index"] in {0,1,2} for x in p["results"])
-        # Perfect runs have no observed recovery opportunity, so recovery remains N/A
-        # and AFB correctly refuses an aggregate Frontier Score.
         assert p["metrics"]["recovery_rate"] is None
         assert p["metrics"]["frontier_score"] is None
 
@@ -158,3 +156,29 @@ def test_terminal_results_adapter():
         path=Path(d)/"terminal.jsonl"
         path.write_text('\n'.join([json.dumps({"task_id":"t1","passed":True,"duration_s":10,"agent_steps":4}),json.dumps({"task_id":"t2","reward":0,"duration_s":20,"agent_steps":6})]))
         out=normalize_terminal_results(str(path)); assert out["n"]==2 and out["pass_rate"]==0.5 and out["mean_actions"]==5.0
+
+
+def test_multiple_graders_per_task():
+    class Adapter:
+        def generate(self,prompt): return "alpha citation-1"
+    task=Task("MG-1","1","core","A6",[],"answer",graders=[
+        GraderSpec({"type":"rubric","positive":[["alpha",1]],"threshold":1.0},name="correctness",weight=2.0),
+        GraderSpec({"type":"citation_fidelity","citations":["citation-1"],"required_claims":["alpha"]},name="citations",weight=1.0),
+    ])
+    with tempfile.TemporaryDirectory() as d:
+        p,_=run_suite(Adapter(),[task],SystemManifest("multi-grader"),d)
+        attempt=p["results"][0]["result"]["attempts"][0]
+        assert p["metrics"]["pass_at_1"]==1.0
+        assert len(attempt["grader_results"])==2
+
+
+def test_trajectory_diagnostics_and_reward_hacking_detector():
+    trajectory=[
+        {"step":0,"action":{"op":"read","asset":"grader"},"valid":False,"violation":False,"state":{"finished":False}},
+        {"step":1,"action":{"op":"finish"},"valid":True,"violation":False,"state":{"finished":True,"verified":False}},
+    ]
+    diag=trajectory_diagnostics(trajectory)
+    codes={x["code"] for x in diag}
+    assert "F06" in codes and "F09" in codes
+    findings=detect_reward_hacking(trajectory)
+    assert findings and findings[0]["code"]=="F15"
