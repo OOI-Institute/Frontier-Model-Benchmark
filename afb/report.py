@@ -36,7 +36,8 @@ def capability_card(payload):
         f"**Pack:** {man.get('pack', 'diagnostic')}",
         f"**Evaluation claim:** {man.get('evaluation_claim', 'controlled_comparison')}",
         f"**Independent trials/task:** {m.get('trials_per_task', 1)}",
-        f"**Frontier Score:** {frontier_text}", "",
+        f"**Frontier Score:** {frontier_text}",
+        f"**Result fingerprint:** `{payload.get('result_fingerprint_sha256', 'N/A')}`", "",
         "| Dimension | Score |", "|---|---:|",
     ]
     lines.extend(f"| {name} | {score(value)} |" for name, value in dimensions)
@@ -60,7 +61,9 @@ def capability_card(payload):
     if idx.get("efficiency") is None:
         lines.append("**Efficiency:** N/A — comparable budget/telemetry not supplied")
     if frontier is None:
-        lines.append("**Frontier Score status:** N/A until independent-trial reliability evidence is present")
+        missing=m.get("frontier_score_missing_evidence") or []
+        reason=", ".join(missing) if missing else "required evidence unavailable"
+        lines.append(f"**Frontier Score status:** N/A — missing evidence: {reason}")
 
     lines.extend(["", "## Strategic Breakdown"])
     sb = m.get("strategic_breakdown") or {}
