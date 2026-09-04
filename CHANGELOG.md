@@ -11,22 +11,25 @@
 - Main-run integration of `VirtualOpsEnvironment` and the sidecar-injection environment.
 - Mid-task inventory drift for adaptation testing and trajectory logging.
 - Measured human-baseline loader (`--human-baselines`) so H50/H80 only activates from real timing data.
+- Human timing collection commands: `afb baseline-record` and `afb baseline-compile`; these record supplied observed timings and never synthesize measurements.
 - Terminal-result interoperability adapter (`afb import-terminal`) for terminal/Harbor-style JSON or JSONL exports.
 - Agent-loop aggregation of token, action, cost, and latency telemetry across multi-step episodes.
 - Manifest fields for pack, official status, retry policy, and publication-grade completeness checks.
 
 ### Changed
 
-- Frontier Score is now suppressed unless independent-trial reliability evidence exists.
+- A8 Tool Use, A9 Planning/Execution, and A10 Recovery/Adaptation in Smoke/Diagnostic profiles now use real interactive environment loops rather than text proxies.
+- Frontier Score is suppressed unless independent-trial consistency **and actual observed recovery evidence** are available.
+- A perfect run with no recovery opportunity reports Recovery as `N/A`; it is not silently assigned 100% recovery.
 - Capability Cards explicitly show pass@1, eventual success, recovery, trial consistency, adaptation, and score availability.
-- OpenAI-compatible sampling settings are now wired from the CLI into the actual request rather than only described in metadata.
+- OpenAI-compatible sampling settings are wired from the CLI into the actual request rather than only described in metadata.
 - Public frontier tasks use programmatic terminal-state success for interactive domains instead of text-only proxy tasks.
 - Benchmark payload version advanced to 1.3.0.
 
 ### Validation status
 
-- CI covers Python 3.10–3.12, unit tests, oracle Smoke-48, weak negative control, multi-trial logic, interactive environment positive control, baseline loading, and terminal-result normalization.
-- No fabricated real-model traces are included. Multi-class external model validation remains required before claiming that a public pack cleanly separates weak, mid-tier, and frontier systems.
+- CI covers Python 3.10–3.12, unit tests, oracle Smoke-48, weak negative control, multi-trial logic, interactive environment positive controls, timing collection/compilation, baseline loading, and terminal-result normalization.
+- No fabricated real-model traces or human measurements are included. Multi-class external model validation and an actual timed-human study remain required before publication-grade claims.
 
 ## 1.2.0 — Evaluation-model expansion
 
