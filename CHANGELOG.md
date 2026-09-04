@@ -1,5 +1,33 @@
 # Changelog
 
+## 1.3.0 — Professional experiment release
+
+### Added
+
+- `afb run --trials N` with independent rollouts separated from within-rollout retries.
+- Trial-level result records, trial consistency, mixed-outcome rate, and rollout counts.
+- Official-manifest validation with refusal of incomplete publication-grade runs.
+- Public `frontier` pack with harder procedural tasks and real interactive execution for A8/A9/A10/A12.
+- Main-run integration of `VirtualOpsEnvironment` and the sidecar-injection environment.
+- Mid-task inventory drift for adaptation testing and trajectory logging.
+- Measured human-baseline loader (`--human-baselines`) so H50/H80 only activates from real timing data.
+- Terminal-result interoperability adapter (`afb import-terminal`) for terminal/Harbor-style JSON or JSONL exports.
+- Agent-loop aggregation of token, action, cost, and latency telemetry across multi-step episodes.
+- Manifest fields for pack, official status, retry policy, and publication-grade completeness checks.
+
+### Changed
+
+- Frontier Score is now suppressed unless independent-trial reliability evidence exists.
+- Capability Cards explicitly show pass@1, eventual success, recovery, trial consistency, adaptation, and score availability.
+- OpenAI-compatible sampling settings are now wired from the CLI into the actual request rather than only described in metadata.
+- Public frontier tasks use programmatic terminal-state success for interactive domains instead of text-only proxy tasks.
+- Benchmark payload version advanced to 1.3.0.
+
+### Validation status
+
+- CI covers Python 3.10–3.12, unit tests, oracle Smoke-48, weak negative control, multi-trial logic, interactive environment positive control, baseline loading, and terminal-result normalization.
+- No fabricated real-model traces are included. Multi-class external model validation remains required before claiming that a public pack cleanly separates weak, mid-tier, and frontier systems.
+
 ## 1.2.0 — Evaluation-model expansion
 
 ### Added
