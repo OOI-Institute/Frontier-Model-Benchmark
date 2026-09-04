@@ -106,6 +106,14 @@ class SafetySpec:
 
 
 @dataclass
+class GraderSpec:
+    spec: dict[str, Any]
+    name: str = "primary"
+    weight: float = 1.0
+    required: bool = True
+
+
+@dataclass
 class Task:
     task_id: str
     version: str
@@ -113,7 +121,8 @@ class Task:
     primary_domain: str
     secondary_domains: list[str]
     prompt: str
-    grader: dict[str, Any]
+    grader: dict[str, Any] | None = None
+    graders: list[GraderSpec] = field(default_factory=list)
     difficulty_tier: int = 1
     human_baseline: HumanBaseline = field(default_factory=HumanBaseline)
     affordances: list[str] = field(default_factory=list)
@@ -129,6 +138,13 @@ class Task:
     budget_tokens: int | None = None
     budget_cost_usd: float | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
+
+    def grader_specs(self) -> list[GraderSpec]:
+        if self.graders:
+            return self.graders
+        if self.grader is not None:
+            return [GraderSpec(spec=self.grader)]
+        return []
 
 
 @dataclass
@@ -148,6 +164,7 @@ class Attempt:
     input_tokens: int | None = None
     output_tokens: int | None = None
     cost_usd: float | None = None
+    grader_results: list[dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
