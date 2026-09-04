@@ -1,57 +1,64 @@
 from __future__ import annotations
-import argparse
+import argparse, json
 from afb.schema import SystemManifest
 from afb.packs.reference import generate_reference_suite
 from afb.adapters.standard import CommandAdapter, OpenAICompatibleAdapter
 from afb.oracle import OracleAdapter, WeakAdapter
 from afb.runner import run_suite
 from afb.report import capability_card
+from afb.safety import run_sidecar_safety_suite
+
+
+def _build_adapter(a, p):
+    if a.adapter == "oracle": return OracleAdapter(), "oracle-validator"
+    if a.adapter == "weak": return WeakAdapter(), "weak-control"
+    if a.adapter == "command":
+        if not a.command: p.error("--command required")
+        return CommandAdapter(a.command), a.system_name
+    if not a.base_url or not a.model: p.error("--base-url and --model required")
+    return OpenAICompatibleAdapter(a.base_url, a.model, a.api_key), a.system_name
+
+
+def _add_adapter_args(parser):
+    parser.add_argument("--adapter", choices=["oracle", "weak", "command", "openai-compatible"], required=True)
+    parser.add_argument("--command")
+    parser.add_argument("--base-url")
+    parser.add_argument("--model")
+    parser.add_argument("--api-key")
+    parser.add_argument("--system-name", default="unnamed-system")
 
 
 def main():
     p = argparse.ArgumentParser(prog="afb")
     sp = p.add_subparsers(dest="cmd", required=True)
-    r = sp.add_parser("run")
-    r.add_argument("--adapter", choices=["oracle", "weak", "command", "openai-compatible"], required=True)
-    r.add_argument("--command")
-    r.add_argument("--base-url")
-    r.add_argument("--model")
-    r.add_argument("--provider", default="unknown")
-    r.add_argument("--api-key")
-    r.add_argument("--system-name", default="unnamed-system")
-    r.add_argument("--evaluation-claim", choices=["controlled_comparison", "maximum_elicitation", "safeguard_evaluation"], default="controlled_comparison")
+
+    r = sp.add_parser("run", help="Run the public diagnostic suite")
+    _add_adapter_args(r)
     r.add_argument("--seed", type=int, default=20260903)
     r.add_argument("--per-domain", type=int, default=25, help="25 = AFB Diagnostic-300; use 4 for Smoke-48")
-    r.add_argument("--max-runtime-s", type=float)
-    r.add_argument("--max-actions", type=int)
-    r.add_argument("--max-total-tokens", type=int)
-    r.add_argument("--max-cost-usd", type=float)
     r.add_argument("--out-dir", default="runs")
-    a = p.parse_args()
+    r.add_argument("--evaluation-claim", choices=["controlled_comparison", "maximum_elicitation", "safeguard_evaluation"], default="controlled_comparison")
 
-    if a.adapter == "oracle":
-        adapter = OracleAdapter(); name = "oracle-validator"
-    elif a.adapter == "weak":
-        adapter = WeakAdapter(); name = "weak-control"
-    elif a.adapter == "command":
-        if not a.command:
-            p.error("--command required")
-        adapter = CommandAdapter(a.command); name = a.system_name
-    else:
-        if not a.base_url or not a.model:
-            p.error("--base-url and --model required")
-        adapter = OpenAICompatibleAdapter(a.base_url, a.model, a.api_key); name = a.system_name
+    s = sp.add_parser("safety", help="Run the isolated adversarial sidecar-injection sandbox")
+    _add_adapter_args(s)
+    s.add_argument("--seed", type=int, default=20260903)
+    s.add_argument("--trials", type=int, default=8)
+    s.add_argument("--max-actions", type=int, default=8)
+
+    a = p.parse_args()
+    adapter, name = _build_adapter(a, p)
+
+    if a.cmd == "safety":
+        seeds = [a.seed + i for i in range(a.trials)]
+        result = run_sidecar_safety_suite(adapter, seeds, max_actions=a.max_actions)
+        print(json.dumps({"system_name": name, "benchmark": "AFB Sidecar Safety Sandbox", **result}, indent=2))
+        return
 
     tasks = generate_reference_suite(a.seed, a.per_domain)
     manifest = SystemManifest(
         system_name=name,
-        provider=a.provider,
         base_model=a.model or "n/a",
         evaluation_claim=a.evaluation_claim,
-        max_runtime_s=a.max_runtime_s,
-        max_actions=a.max_actions,
-        max_total_tokens=a.max_total_tokens,
-        max_cost_usd=a.max_cost_usd,
     )
     payload, path = run_suite(adapter, tasks, manifest, a.out_dir)
     print(capability_card(payload))
