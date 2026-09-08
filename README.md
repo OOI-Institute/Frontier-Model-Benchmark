@@ -1,42 +1,82 @@
 # AnyModel Frontier Benchmark (AFB)
 
-AFB is an open, provider-neutral evaluation framework for **AI models and AI systems**. It characterizes what a submitted system can do, how reliably and safely it does it, where it fails, how it behaves under changing state and constraints, and what resources successful performance requires.
+**Provider-Neutral Evaluation for AI Models and AI Systems**
 
-AFB does **not** treat a bare model and a tool-augmented agent as the same evaluation object. Every result is tied to a declared system configuration: model, prompts, tools, memory, scaffold, inference budget, retry policy, runtime limits, sampling, network policy, and evaluation claim.
+AFB is a standalone evaluation framework for characterizing what an AI model or AI system can do, how reliably and safely it does it, where it fails, how it behaves under changing state and constraints, and what resources successful performance requires.
+
+AFB evaluates the declared system that was actually run. A bare model, a tool-augmented agent, and a scaffolded autonomous system are different evaluation objects and should not be reported as if they were equivalent.
+
+> AFB does not just rank AI systems. It characterizes their operating envelope.
+
+## Core flow
+
+```text
+MODEL / SYSTEM CONFIGURATION
++ TASK PACK
++ RUNTIME / TOOL / BUDGET POLICY
+        ↓
+       AFB
+        ↓
+independent trials
++ deterministic / programmatic grading
++ telemetry + trajectory diagnostics
++ safety / reliability / recovery analysis
+        ↓
+NORMALIZED RESULT
++ MANIFEST
++ PROVENANCE FINGERPRINT
+        ↓
+COMPARISON / REPORTING / EXTERNAL ANALYSIS
+```
 
 ## What AFB evaluates
 
-AFB separates evaluation into three layers.
+```text
+AFB
+├─ capability
+├─ reliability
+├─ safety
+├─ autonomy
+├─ control / constraint adherence
+├─ efficiency
+├─ calibration
+├─ recovery / adaptation
+├─ system-vs-model attribution
+├─ failure-class diagnostics
+└─ trajectory diagnostics
+```
 
-### Performance
+## Core concepts
 
-- **Safety** — whether the system resists adversarial sidecar injections while still completing legitimate work.
-- **Capability** — which classes of tasks the system can complete.
-- **Reliability** — whether it succeeds on first attempt and across independent trials rather than depending on retries.
-- **Autonomy** — how much task complexity and duration it can sustain.
-- **Control** — whether it respects scope, authority, uncertainty, and operational constraints.
-- **Efficiency** — resource use relative to declared runtime/action/token/cost budgets when comparable telemetry exists.
-- **Calibration** — whether confidence tracks correctness and whether the system recognizes insufficient information.
-- **Recovery / Adaptation** — whether it can correct failure and re-plan after the environment changes.
+### System manifest
 
-### Attribution
+Every result is tied to a declared configuration that can include model/provider identity, prompts, tools, memory, scaffold, inference budget, retry policy, runtime limits, sampling, network/context policy, and resource budget.
 
-- **System-vs-model contribution** — whether gains arise from the base model or from tools, memory, scaffolding, retries, recovery, or additional inference budget. Attribution requires matched configurations.
+### Independent trials
 
-### Diagnostics
+A **trial** is a new rollout. A **retry** is an attempt inside one rollout. AFB keeps them separate so pass@1, eventual success, recovery, and consistency are not conflated.
 
-- **Strategic Breakdown** — which failure classes dominate: reasoning, planning, tool selection, tool execution, state tracking, memory, verification, recovery, calibration, authority/control, environment understanding, format, resource/runtime, reward hacking, and others.
-- **Trajectory diagnostics** — inferred causal signals from recorded agent step sequences. These are explicitly labeled as inferred diagnostics, not definitive root causes.
+### Task packs
 
-**AFB does not just rank AI systems. It characterizes their operating envelope.**
+AFB ships public task packs for harness validation and reproducible diagnostics, while allowing organizations to bring private or domain-specific evaluations through the same result schema.
 
-## `run` is an experiment
+### Grading
 
-`afb run` supports **independent trials per task**. A trial is a new rollout. A retry is an attempt inside one rollout. They are never merged.
+AFB prefers the strongest objective grader available:
 
-AFB reports pass@1, eventual success, recovery rate, independent-trial consistency, mixed trial outcomes, adaptation success, per-domain confidence intervals, and trajectory/action telemetry for interactive tasks.
+```text
+G0  exact / cryptographic
+G1  programmatic terminal-state verification
+G2  deterministic rubric / multi-grader aggregation
+G3  validated model judge                  planned opt-in
+G4  human expert adjudication              external protocol
+```
 
-AFB does **not** emit a Frontier Score from a one-pass run or from a run without observed recovery evidence.
+### Result provenance
+
+Saved AFB results include a deterministic SHA-256 fingerprint over the canonical payload. This provides tamper evidence for the serialized result; it is not a claim of independent certification of the underlying run.
+
+## Minimal usage
 
 ```bash
 python -m afb.cli run \
@@ -48,142 +88,109 @@ python -m afb.cli run \
   --system-name my-frontier-run
 ```
 
-Every run log includes a deterministic SHA-256 fingerprint over the complete canonical payload. Verify a saved result with:
+Verify a saved result:
 
 ```bash
 python -m afb.cli verify-result --input runs/<run>.json
 ```
 
-The fingerprint is tamper-evidence for the serialized AFB result. It is not a claim that AFB independently witnessed or certified the underlying model execution.
+## Installation
+
+```bash
+python -m pip install -e .
+```
+
+Python 3.10+ is required.
+
+## MVP scope
+
+This repository contains the standalone AFB benchmark framework and public reference packs:
+
+```text
+afb/         benchmark runtime + schemas + graders + adapters
+tests/       automated regression and validation tests
+examples/    integration examples
+docs/        benchmark protocol, methods, schemas, scoring, extensions
+.github/     CI and repository automation
+```
+
+The public MVP provides:
+
+- experiment-oriented `afb run`,
+- independent trials,
+- deterministic and programmatic graders,
+- interactive execution support,
+- system manifests,
+- telemetry and diagnostics,
+- adversarial safety testing,
+- baseline collection tooling,
+- external result normalization,
+- tamper-evident result fingerprints,
+- public reproducible packs.
+
+AFB does not require any proprietary orchestration platform, private model provider, internal benchmark service, or company-specific runtime. Labs and product teams can embed it independently or extend it with private evaluations.
+
+See [`docs/MVP_SCOPE.md`](docs/MVP_SCOPE.md).
+
+## What AFB is not
+
+AFB is not itself:
+
+- a model provider,
+- a model leaderboard service,
+- an inference runtime,
+- an agent framework,
+- a claim of independent certification,
+- a sealed benchmark authority,
+- or a substitute for domain-specific expert evaluation.
+
+Those systems can integrate with AFB through its task, adapter, grader, manifest, and result interfaces.
 
 ## Public packs
 
 ### Smoke-48
-Four procedural instances across twelve domains. Intended for CI, adapter validation, and harness regression.
+
+Small procedural pack for CI, adapter validation, and harness regression.
 
 ### Diagnostic-300
-Twenty-five procedural instances across twelve domains. Intended for repeatable development diagnostics. **Diagnostic-300 is not by itself evidence of frontier capability.**
 
-### Frontier — open execution profile
+Repeatable development diagnostics across twelve domains. Diagnostic-300 alone is not evidence of frontier capability.
 
-The public `frontier` pack combines longer-state/multi-constraint tasks with interactive execution. A8/A9/A10 act through the environment loop, A10 receives a mid-task world-state change, and A12 runs adversarial sidecar testing. Interactive tasks are graded from terminal state rather than claims in prose.
+### Frontier
 
-The Frontier pack is **public and reproducible**, not sealed or contamination-resistant.
+Open execution profile combining longer-state, multi-constraint, interactive, adaptive, and adversarial tasks. It is public and reproducible rather than sealed or contamination-resistant.
 
-## Grading
+## Evaluation integrity
 
-AFB prefers the strongest objective grader available:
+AFB reports observed evidence rather than manufacturing prestige metrics. Official runs require stronger manifest completeness, and AFB does not emit a Frontier Score from a one-pass run or from a run without observed recovery evidence.
 
-1. **G0 — Exact / cryptographic** — implemented
-2. **G1 — Programmatic terminal-state verification** — implemented
-3. **G2 — Deterministic rubric / multi-grader aggregation** — implemented
-4. **G3 — Validated model judge** — planned opt-in extension
-5. **G4 — Human expert adjudication** — planned external review protocol
+Measured human baselines are treated as measured only when supported by timing evidence. Real-model validation and private professional tasks remain external inputs rather than fabricated repository fixtures.
 
-Tasks may declare multiple named graders with weights and required/optional status. The reference grader set includes exact, numeric, JSON, rubric, calibration, and citation-fidelity scoring. Never use a model judge when deterministic/programmatic grading can decide the outcome.
+## Extension surface
 
-## Safety and reward-hacking signals
+AFB is designed for additional evaluation packs such as:
 
-AFB includes an isolated sidecar-injection environment. Safe success requires legitimate task completion and no prohibited-resource access.
+- repository / patch / test-loop tasks,
+- computer-use environments,
+- containerized terminal tasks,
+- research and citation-fidelity tasks,
+- frontier math/science,
+- robotics / embodied systems,
+- proprietary internal evaluations,
+- private red-team suites and human studies.
 
-v1.3.x also includes a conservative F15 detector for **explicit** grader/test probing visible in action trajectories. It catches obvious attempts to access or manipulate grading assets; it is not presented as complete reward-hacking detection.
+AFB does not need to own private or sealed assets to normalize and analyze compatible results.
 
-## Official manifest gate
+## Project documentation
 
-A normal development run may leave optional metadata unspecified. An `--official` run may not. Publication-critical fields include model/provider identity, model version, system prompt hash, scaffold/version, reasoning budget, retry policy, network/context policy, sampling, declared resource budget, and independent trials. Frontier official runs must also declare tools.
+- [`docs/BENCHMARK_SPEC.md`](docs/BENCHMARK_SPEC.md) — benchmark protocol
+- [`docs/METHODS.md`](docs/METHODS.md) — methodology
+- [`docs/TASK_SCHEMA.md`](docs/TASK_SCHEMA.md) — task format
+- [`docs/SCORING.md`](docs/SCORING.md) — scoring and statistics
+- [`docs/AGENT_PROTOCOL.md`](docs/AGENT_PROTOCOL.md) — environment protocol
+- [`docs/EXTENSIONS.md`](docs/EXTENSIONS.md) — interoperability and extensions
+- [`docs/VNEXT_PLAN.md`](docs/VNEXT_PLAN.md) — current architecture and forward work
 
-An official manifest plus a valid result fingerprint means the run is reproducibly described and the saved payload has not changed since generation. It does **not** by itself create third-party certification; organizations may layer signatures, attestations, sealed packs, or verified leaderboards on top of the open format.
+## License
 
-## Measured human baselines
-
-AFB never treats author-estimated times as measured human data. H50/H80 remains unavailable unless a task has `source=measured` timing evidence.
-
-The public tooling supports collecting and compiling measured baselines:
-
-```bash
-python -m afb.cli baseline-record ...
-python -m afb.cli baseline-compile ...
-```
-
-Organizations may run their own timing studies and pass the resulting baseline file to `afb run`.
-
-## External interoperability and extension ecosystem
-
-AFB is open source so organizations can bring their own evaluations instead of waiting for AFB to centrally own every benchmark environment.
-
-Implemented today:
-- terminal/Harbor-style **result normalization** via `afb import-terminal`
-- common system manifest, telemetry, statistics, diagnostics, reporting, and result-provenance schema
-
-The framework is intentionally designed for labs and contributors to add:
-- SWE-bench-style repository/patch/test-loop packs
-- OSWorld-style computer-use environments
-- deeper containerized terminal execution packs
-- BrowseComp/research packs using correctness + citation-fidelity grading
-- frontier math/science packs
-- robotics/embodied packs
-- proprietary internal evaluations, private tools, red-team suites, and human studies
-
-AFB does **not** need to own the private or sealed assets. A lab can keep those entirely internal while producing AFB-compatible results.
-
-## Current maturity
-
-```text
-AFB CORE — PROVIDED PUBLICLY
-────────────────────────────
-Framework                    DONE
-Diagnostic benchmark          DONE
-Agent execution               DONE
-Independent trials            DONE
-Telemetry/reporting           DONE
-Manifest discipline           DONE
-Adversarial safety            DONE
-External result adapter       DONE
-Public Frontier pack          DONE
-Multiple deterministic graders DONE
-Trajectory diagnostic signals DONE
-Baseline collection tooling   DONE
-Tamper-evident result fingerprints DONE
-
-AFB EXTENSION LAYER — USER/LAB PROVIDED
-───────────────────────────────────────
-Real-model validation
-Measured human baselines
-Private professional tasks
-Broader frontier task depth
-Domain-specific environments
-Internal safety evaluations
-Proprietary tool ecosystems
-Custom graders
-
-OPTIONAL ADVANCED INFRASTRUCTURE
-───────────────────────────────
-Sealed/live/post-cutoff task sets
-Validated model-judge protocol
-Formal human adjudication
-Signed third-party attestations
-Verified leaderboards
-Independent certification
-Institution-scale governance
-```
-
-## Validation status
-
-AFB has automated validation across Python 3.10–3.12 covering oracle/negative controls, independent trials, interactive execution, adaptation, sidecar safety, efficiency, manifest checks, baseline loading, terminal-result normalization, multi-grader behavior, trajectory diagnostics, and result-fingerprint integrity.
-
-AFB does **not** include fabricated real-model traces or fabricated human measurements. Organizations can and should validate the framework against their own weak/mid/frontier model classes and measured baselines. If a pack does not discriminate their systems cleanly, the pack should be improved rather than the score reinterpreted.
-
-## Project files
-
-- `docs/VNEXT_PLAN.md` — architecture, implemented baseline, and extension ecosystem
-- `docs/BENCHMARK_SPEC.md` — benchmark protocol
-- `docs/METHODS.md` — methodology
-- `docs/TASK_SCHEMA.md` — task format
-- `docs/SCORING.md` — scoring and statistics
-- `docs/AGENT_PROTOCOL.md` — environment protocol
-- `docs/EXTENSIONS.md` — interoperability and extension design
-- `CONTRIBUTING.md` — contribution process
-- `GOVERNANCE.md` — benchmark governance
-- `SECURITY.md` — vulnerability reporting
-
-**AFB characterizes what a system can do, how dependable and safe it is, where it breaks, how it behaves when things go wrong, and what actually produced an improvement.**
+Apache-2.0. See `LICENSE`.
